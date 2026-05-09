@@ -1,0 +1,349 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Survey Platform API",
+    "description": "API para gestión de encuestas, preguntas y respuestas",
+    "version": "1.0.0"
+  },
+  "host": "localhost:3000",
+  "basePath": "/api",
+  "schemes": ["http", "https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "tags": [
+    { "name": "Surveys", "description": "Gestión de encuestas" },
+    { "name": "Questions", "description": "Gestión de preguntas por encuesta" },
+    { "name": "Responses", "description": "Envío de respuestas (vista pública)" },
+    { "name": "Results", "description": "Resultados y estadísticas" }
+  ],
+  "definitions": {
+    "ApiSuccess": {
+      "type": "object",
+      "properties": {
+        "success": { "type": "boolean", "example": true },
+        "data": { "type": "object" }
+      }
+    },
+    "ApiError": {
+      "type": "object",
+      "properties": {
+        "success": { "type": "boolean", "example": false },
+        "message": { "type": "string" },
+        "errors": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "Survey": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "title": { "type": "string" },
+        "description": { "type": "string", "x-nullable": true },
+        "status": { "type": "string", "enum": ["DRAFT", "PUBLISHED", "CLOSED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "CreateSurveyBody": {
+      "type": "object",
+      "required": ["title"],
+      "properties": {
+        "title": { "type": "string", "example": "Encuesta de satisfacción" },
+        "description": { "type": "string", "example": "Encuesta para medir la satisfacción del cliente" }
+      }
+    },
+    "UpdateSurveyBody": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["DRAFT", "PUBLISHED", "CLOSED"] }
+      }
+    },
+    "Question": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "surveyId": { "type": "string", "format": "uuid" },
+        "text": { "type": "string" },
+        "type": { "type": "string", "enum": ["SINGLE_CHOICE", "MULTIPLE_CHOICE", "TEXT", "RATING"] },
+        "order": { "type": "integer" },
+        "options": { "type": "array", "items": { "type": "string" }, "x-nullable": true },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "CreateQuestionBody": {
+      "type": "object",
+      "required": ["text", "type", "order"],
+      "properties": {
+        "text": { "type": "string", "example": "¿Cómo calificarías nuestro servicio?" },
+        "type": { "type": "string", "enum": ["SINGLE_CHOICE", "MULTIPLE_CHOICE", "TEXT", "RATING"], "example": "SINGLE_CHOICE" },
+        "order": { "type": "integer", "example": 1 },
+        "options": {
+          "type": "array",
+          "items": { "type": "string" },
+          "example": ["Excelente", "Bueno", "Regular", "Malo"],
+          "description": "Requerido para SINGLE_CHOICE y MULTIPLE_CHOICE (mínimo 2 opciones)"
+        }
+      }
+    },
+    "UpdateQuestionBody": {
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "order": { "type": "integer" },
+        "options": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "AnswerItem": {
+      "type": "object",
+      "required": ["questionId", "value"],
+      "properties": {
+        "questionId": { "type": "string", "format": "uuid" },
+        "value": {
+          "description": "String para TEXT/RATING, array de strings para MULTIPLE_CHOICE",
+          "example": "Excelente"
+        }
+      }
+    },
+    "SubmitResponseBody": {
+      "type": "object",
+      "required": ["answers"],
+      "properties": {
+        "respondent": { "type": "string", "example": "usuario@email.com", "description": "Identificador opcional del respondente" },
+        "answers": { "type": "array", "items": { "$ref": "#/definitions/AnswerItem" } }
+      }
+    },
+    "QuestionResult": {
+      "type": "object",
+      "properties": {
+        "questionId": { "type": "string", "format": "uuid" },
+        "questionText": { "type": "string" },
+        "type": { "type": "string", "enum": ["SINGLE_CHOICE", "MULTIPLE_CHOICE", "TEXT", "RATING"] },
+        "totalAnswers": { "type": "integer" },
+        "optionCounts": {
+          "type": "object",
+          "description": "Conteo por opción (SINGLE_CHOICE / MULTIPLE_CHOICE)",
+          "additionalProperties": { "type": "integer" },
+          "example": { "Excelente": 10, "Bueno": 5 }
+        },
+        "textAnswers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Muestra de hasta 20 respuestas (TEXT)"
+        },
+        "average": { "type": "number", "description": "Promedio de calificaciones (RATING)" }
+      }
+    },
+    "SurveyResults": {
+      "type": "object",
+      "properties": {
+        "surveyId": { "type": "string", "format": "uuid" },
+        "surveyTitle": { "type": "string" },
+        "totalResponses": { "type": "integer" },
+        "questions": { "type": "array", "items": { "$ref": "#/definitions/QuestionResult" } }
+      }
+    }
+  },
+  "paths": {
+    "/surveys": {
+      "get": {
+        "tags": ["Surveys"],
+        "summary": "Listar todas las encuestas",
+        "responses": {
+          "200": {
+            "description": "Lista de encuestas",
+            "schema": {
+              "allOf": [
+                { "$ref": "#/definitions/ApiSuccess" },
+                { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/definitions/Survey" } } } }
+              ]
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Surveys"],
+        "summary": "Crear una encuesta",
+        "parameters": [
+          { "in": "body", "name": "body", "required": true, "schema": { "$ref": "#/definitions/CreateSurveyBody" } }
+        ],
+        "responses": {
+          "201": {
+            "description": "Encuesta creada",
+            "schema": {
+              "allOf": [
+                { "$ref": "#/definitions/ApiSuccess" },
+                { "type": "object", "properties": { "data": { "$ref": "#/definitions/Survey" } } }
+              ]
+            }
+          },
+          "422": { "description": "Error de validación", "schema": { "$ref": "#/definitions/ApiError" } }
+        }
+      }
+    },
+    "/surveys/{id}": {
+      "parameters": [
+        { "in": "path", "name": "id", "required": true, "type": "string", "format": "uuid" }
+      ],
+      "get": {
+        "tags": ["Surveys"],
+        "summary": "Obtener una encuesta por ID",
+        "responses": {
+          "200": {
+            "description": "Encuesta encontrada",
+            "schema": {
+              "allOf": [
+                { "$ref": "#/definitions/ApiSuccess" },
+                { "type": "object", "properties": { "data": { "$ref": "#/definitions/Survey" } } }
+              ]
+            }
+          },
+          "404": { "description": "Encuesta no encontrada", "schema": { "$ref": "#/definitions/ApiError" } }
+        }
+      },
+      "put": {
+        "tags": ["Surveys"],
+        "summary": "Actualizar una encuesta",
+        "parameters": [
+          { "in": "body", "name": "body", "required": true, "schema": { "$ref": "#/definitions/UpdateSurveyBody" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Encuesta actualizada",
+            "schema": {
+              "allOf": [
+                { "$ref": "#/definitions/ApiSuccess" },
+                { "type": "object", "properties": { "data": { "$ref": "#/definitions/Survey" } } }
+              ]
+            }
+          },
+          "404": { "description": "Encuesta no encontrada", "schema": { "$ref": "#/definitions/ApiError" } }
+        }
+      },
+      "delete": {
+        "tags": ["Surveys"],
+        "summary": "Eliminar una encuesta",
+        "responses": {
+          "200": { "description": "Encuesta eliminada", "schema": { "$ref": "#/definitions/ApiSuccess" } },
+          "404": { "description": "Encuesta no encontrada", "schema": { "$ref": "#/definitions/ApiError" } }
+        }
+      }
+    },
+    "/surveys/{surveyId}/questions": {
+      "parameters": [
+        { "in": "path", "name": "surveyId", "required": true, "type": "string", "format": "uuid" }
+      ],
+      "get": {
+        "tags": ["Questions"],
+        "summary": "Listar preguntas de una encuesta",
+        "responses": {
+          "200": {
+            "description": "Lista de preguntas ordenadas por order",
+            "schema": {
+              "allOf": [
+                { "$ref": "#/definitions/ApiSuccess" },
+                { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/definitions/Question" } } } }
+              ]
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Questions"],
+        "summary": "Crear una pregunta",
+        "description": "Para tipos SINGLE_CHOICE y MULTIPLE_CHOICE el campo options es obligatorio con al menos 2 elementos.",
+        "parameters": [
+          { "in": "body", "name": "body", "required": true, "schema": { "$ref": "#/definitions/CreateQuestionBody" } }
+        ],
+        "responses": {
+          "201": {
+            "description": "Pregunta creada",
+            "schema": {
+              "allOf": [
+                { "$ref": "#/definitions/ApiSuccess" },
+                { "type": "object", "properties": { "data": { "$ref": "#/definitions/Question" } } }
+              ]
+            }
+          },
+          "400": { "description": "Opciones requeridas para el tipo de pregunta", "schema": { "$ref": "#/definitions/ApiError" } },
+          "422": { "description": "Error de validación", "schema": { "$ref": "#/definitions/ApiError" } }
+        }
+      }
+    },
+    "/surveys/{surveyId}/questions/{id}": {
+      "parameters": [
+        { "in": "path", "name": "surveyId", "required": true, "type": "string", "format": "uuid" },
+        { "in": "path", "name": "id", "required": true, "type": "string", "format": "uuid" }
+      ],
+      "put": {
+        "tags": ["Questions"],
+        "summary": "Actualizar una pregunta",
+        "parameters": [
+          { "in": "body", "name": "body", "required": true, "schema": { "$ref": "#/definitions/UpdateQuestionBody" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pregunta actualizada",
+            "schema": {
+              "allOf": [
+                { "$ref": "#/definitions/ApiSuccess" },
+                { "type": "object", "properties": { "data": { "$ref": "#/definitions/Question" } } }
+              ]
+            }
+          },
+          "404": { "description": "Pregunta no encontrada", "schema": { "$ref": "#/definitions/ApiError" } }
+        }
+      },
+      "delete": {
+        "tags": ["Questions"],
+        "summary": "Eliminar una pregunta",
+        "responses": {
+          "200": { "description": "Pregunta eliminada", "schema": { "$ref": "#/definitions/ApiSuccess" } },
+          "404": { "description": "Pregunta no encontrada", "schema": { "$ref": "#/definitions/ApiError" } }
+        }
+      }
+    },
+    "/surveys/{surveyId}/responses": {
+      "parameters": [
+        { "in": "path", "name": "surveyId", "required": true, "type": "string", "format": "uuid" }
+      ],
+      "post": {
+        "tags": ["Responses"],
+        "summary": "Enviar respuestas a una encuesta",
+        "description": "La encuesta debe estar en estado PUBLISHED. El campo respondent es opcional.",
+        "parameters": [
+          { "in": "body", "name": "body", "required": true, "schema": { "$ref": "#/definitions/SubmitResponseBody" } }
+        ],
+        "responses": {
+          "201": { "description": "Respuesta registrada", "schema": { "$ref": "#/definitions/ApiSuccess" } },
+          "400": { "description": "Encuesta no publicada", "schema": { "$ref": "#/definitions/ApiError" } },
+          "404": { "description": "Encuesta no encontrada", "schema": { "$ref": "#/definitions/ApiError" } },
+          "422": { "description": "Error de validación", "schema": { "$ref": "#/definitions/ApiError" } }
+        }
+      }
+    },
+    "/surveys/{surveyId}/results": {
+      "parameters": [
+        { "in": "path", "name": "surveyId", "required": true, "type": "string", "format": "uuid" }
+      ],
+      "get": {
+        "tags": ["Results"],
+        "summary": "Obtener resultados y estadísticas de una encuesta",
+        "description": "Retorna estadísticas agregadas por pregunta: conteo por opción (SINGLE/MULTIPLE_CHOICE), muestra de respuestas (TEXT), promedio (RATING).",
+        "responses": {
+          "200": {
+            "description": "Resultados de la encuesta",
+            "schema": {
+              "allOf": [
+                { "$ref": "#/definitions/ApiSuccess" },
+                { "type": "object", "properties": { "data": { "$ref": "#/definitions/SurveyResults" } } }
+              ]
+            }
+          },
+          "404": { "description": "Encuesta no encontrada", "schema": { "$ref": "#/definitions/ApiError" } }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+# ─── Dependencies ───────────────────────────────────────────────────────────
+node_modules/
+
+# ─── Environment ────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+# keep .env.example (it's safe to commit)
+!.env.example
+
+# ─── SQLite database ────────────────────────────────────────────────────────
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# ─── Build outputs ──────────────────────────────────────────────────────────
+dist/
+build/
+
+# ─── Angular ────────────────────────────────────────────────────────────────
+frontend/.angular/
+frontend/dist/
+
+# ─── Logs ───────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+
+# ─── OS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── IDE ────────────────────────────────────────────────────────────────────
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ─── Prisma ─────────────────────────────────────────────────────────────────
+# migrations se suben, solo ignorar el cliente generado si se regenera en CI
+# backend/node_modules/.prisma  <- ya cubierto por node_modules
+
+# ─── Test coverage ──────────────────────────────────────────────────────────
+coverage/
