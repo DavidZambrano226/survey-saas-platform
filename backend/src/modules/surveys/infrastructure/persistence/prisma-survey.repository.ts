@@ -16,6 +16,17 @@ export class PrismaSurveyRepository implements SurveyRepository {
     return new Survey(raw.id, raw.title, raw.description, raw.status as any, raw.createdAt, raw.updatedAt);
   }
 
+  private toPlain(survey: Survey) {
+    return {
+      id: survey.id,
+      title: survey.title,
+      description: survey.description,
+      status: survey.status,
+      createdAt: survey.createdAt,
+      updatedAt: survey.updatedAt,
+    };
+  }
+
   async findAll(): Promise<Survey[]> {
     const surveys = await this.prisma.survey.findMany({ orderBy: { createdAt: 'desc' } });
     return surveys.map(this.toDomain);

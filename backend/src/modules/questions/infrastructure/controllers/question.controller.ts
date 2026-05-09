@@ -14,7 +14,7 @@ const createValidations = [
   body('text').notEmpty().withMessage('Question text is required'),
   body('type').isIn(['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TEXT', 'RATING']).withMessage('Invalid question type'),
   body('order').isInt({ min: 0 }).withMessage('Order must be a non-negative integer'),
-  body('options').optional().isArray().withMessage('Options must be an array'),
+  body('options').optional({ nullable: true }).isArray().withMessage('Options must be an array'),
 ];
 
 // GET /surveys/:surveyId/questions
