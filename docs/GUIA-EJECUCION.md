@@ -231,8 +231,7 @@ survey-saas-platform/
 │   │   └── environments/      # Configuración por entorno
 │   └── package.json
 │
-├── reto/                      # Enunciado de la prueba técnica
-├── ARQUITECTURA.md            # Documentación de arquitectura
-├── GUIA-EJECUCION.md          # Este archivo
-└── SUSTENTACION.md            # Guía de sustentación técnica
+├── docs/                      # Documentacion
+│   ├──ARQUITECTURA.md            # Documentación de arquitectura
+│   ├──GUIA-EJECUCION.md          # Este archivo
 ```
