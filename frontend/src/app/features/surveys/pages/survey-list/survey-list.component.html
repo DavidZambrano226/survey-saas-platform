@@ -1,0 +1,54 @@
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0 page-header">Encuestas</h2>
+    <a routerLink="/surveys/new" class="btn btn-primary px-4">+ Nueva encuesta</a>
+  </div>
+
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border"></div>
+    </div>
+  } @else if (surveys().length === 0) {
+    <div class="text-center py-5 text-muted">
+      <p class="fs-5">No hay encuestas aún. ¡Crea la primera!</p>
+    </div>
+  } @else {
+    <div class="row g-3">
+      @for (survey of surveys(); track survey.id) {
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title fw-bold mb-1">{{ survey.title }}</h5>
+              @if (survey.description) {
+                <p class="card-text text-muted small flex-grow-1 mb-2">{{ survey.description }}</p>
+              }
+              <div class="d-flex justify-content-between align-items-center mt-auto mb-3">
+                <small class="text-muted">{{ survey.createdAt | date:'dd/MM/yyyy' }}</small>
+                <app-status-badge [status]="survey.status" />
+              </div>
+              <div class="d-flex gap-2 flex-wrap">
+                <a [routerLink]="['/surveys', survey.id, 'edit']" class="btn btn-sm btn-outline-primary">Editar</a>
+                @if (survey.status === 'PUBLISHED' || survey.status === 'CLOSED') {
+                  <button class="btn btn-sm btn-outline-success" (click)="goToResults(survey.id)">📊 Resultados</button>
+                }
+                @if (survey.status === 'PUBLISHED') {
+                  <a [routerLink]="['/survey', survey.id]" target="_blank" class="btn btn-sm btn-outline-secondary">🔗 Link público</a>
+                }
+                <button class="btn btn-sm btn-outline-danger ms-auto" (click)="confirmDelete(survey.id)">Eliminar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+@if (deleteId()) {
+  <app-confirm-modal
+    title="Eliminar encuesta"
+    message="¿Seguro que deseas eliminar esta encuesta? Se eliminarán todas sus preguntas y respuestas."
+    (confirm)="doDelete()"
+    (cancel)="deleteId.set(null)"
+  />
+}

@@ -1,0 +1,101 @@
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Preguntas</h5>
+    <button class="btn btn-sm btn-primary" (click)="openNew()">+ Agregar pregunta</button>
+  </div>
+
+  <ul class="list-group list-group-flush">
+    @if (questions().length === 0) {
+      <li class="list-group-item text-muted text-center py-3">Sin preguntas aún</li>
+    }
+    @for (q of questions(); track q.id; let i = $index) {
+      <li class="list-group-item d-flex justify-content-between align-items-start">
+        <div>
+          <span class="fw-semibold">{{ i + 1 }}. {{ q.text }}</span>
+          <span class="badge bg-light text-dark ms-2">{{ q.type }}</span>
+          @if (q.options?.length) {
+            <div class="mt-1">
+              @for (opt of q.options!; track opt) {
+                <span class="badge bg-secondary me-1">{{ opt }}</span>
+              }
+            </div>
+          }
+        </div>
+        <div class="d-flex gap-1 ms-2">
+          <button class="btn btn-sm btn-outline-primary" (click)="openEdit(q)">Editar</button>
+          <button class="btn btn-sm btn-outline-danger" (click)="deleteId.set(q.id)">Eliminar</button>
+        </div>
+      </li>
+    }
+  </ul>
+</div>
+
+@if (showForm()) {
+  <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ editingId() ? 'Editar pregunta' : 'Nueva pregunta' }}</h5>
+          <button class="btn-close" (click)="showForm.set(false)"></button>
+        </div>
+        <div class="modal-body">
+          <form [formGroup]="form">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Texto *</label>
+              <input formControlName="text" class="form-control" placeholder="Escribe la pregunta" />
+            </div>
+
+            @if (!editingId()) {
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Tipo</label>
+                <select formControlName="type" class="form-select">
+                  @for (t of questionTypes; track t.value) {
+                    <option [value]="t.value">{{ t.label }}</option>
+                  }
+                </select>
+              </div>
+            }
+
+            @if (needsOptions) {
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Opciones</label>
+                <div class="input-group mb-2">
+                  <input class="form-control" placeholder="Agregar opción"
+                    [value]="optionInput()"
+                    (input)="optionInput.set($any($event.target).value)"
+                    (keydown.enter)="$event.preventDefault(); addOption()" />
+                  <button type="button" class="btn btn-outline-secondary" (click)="addOption()">+</button>
+                </div>
+                <div class="d-flex flex-wrap gap-1">
+                  @for (opt of optionsCtrl.value ?? []; track opt; let i = $index) {
+                    <span class="badge bg-secondary d-flex align-items-center gap-1">
+                      {{ opt }}
+                      <button type="button" class="btn-close btn-close-white btn-sm"
+                        style="font-size:.6rem" (click)="removeOption(i)"></button>
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="showForm.set(false)">Cancelar</button>
+          <button class="btn btn-primary" (click)="submit()" [disabled]="saving()">
+            @if (saving()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@if (deleteId()) {
+  <app-confirm-modal
+    title="Eliminar pregunta"
+    message="¿Seguro que deseas eliminar esta pregunta?"
+    (confirm)="doDelete()"
+    (cancel)="deleteId.set(null)"
+  />
+}

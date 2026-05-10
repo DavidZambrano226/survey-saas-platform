@@ -1,0 +1,43 @@
+<div class="container py-4">
+  @if (loading()) {
+    <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+  } @else if (!results()) {
+    <div class="alert alert-danger">No se pudieron cargar los resultados.</div>
+  } @else {
+    <div class="d-flex align-items-center gap-2 mb-4">
+      <a routerLink="/surveys" class="btn btn-sm btn-outline-secondary">← Volver</a>
+      <div>
+        <h2 class="mb-0 page-header">{{ results()!.surveyTitle }}</h2>
+        <small class="text-muted ms-3">{{ results()!.totalResponses }} respuesta(s) en total</small>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      @for (q of results()!.questions; track q.questionId) {
+        <div class="col-12 col-lg-6">
+          <div class="card shadow-sm h-100">
+            <div class="card-body">
+              <h6 class="card-title">{{ q.questionText }}</h6>
+              <small class="text-muted d-block mb-3">{{ q.totalAnswers }} respuesta(s)</small>
+
+              @if (hasChart(q)) {
+                <app-chart [question]="q" />
+              }
+
+              @if (q.type === 'TEXT') {
+                <ul class="list-unstyled mb-0">
+                  @for (ans of q.textAnswers ?? []; track ans) {
+                    <li class="border-bottom py-2 small">{{ ans }}</li>
+                  }
+                  @if (!q.textAnswers?.length) {
+                    <li class="text-muted">Sin respuestas de texto</li>
+                  }
+                </ul>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
