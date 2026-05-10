@@ -111,7 +111,6 @@ survey-saas-platform/
 ├── docs/
 │   ├── ARQUITECTURA.md    # Diseño técnico detallado
 │   └── GUIA-EJECUCION.md  # Setup y troubleshooting
-└── reto/                  # Enunciado de la prueba técnica
 ```
 
 ---
